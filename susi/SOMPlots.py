@@ -57,7 +57,7 @@ def plot_som_histogram(
     n_rows: int,
     n_columns: int,
     n_datapoints_cbar: int = 5,
-    fontsize: int = 22,
+    fontsize: int = 10,
 ) -> plt.Axes:
     """Plot 2D Histogram of SOM.
 
@@ -83,25 +83,18 @@ def plot_som_histogram(
         Plot axis
 
     """
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    fig, ax = plt.subplots(1, 1, figsize=(20, 20))
 
-    # colormap
     cmap = plt.cm.viridis
-    cmaplist = [cmap(i) for i in range(cmap.N)]
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-        "mcm", cmaplist, cmap.N
-    )
-
-    bounds = np.arange(0.0, n_datapoints_cbar + 1, 1.0)
-    norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+    norm = matplotlib.colors.Normalize(vmin=1, vmax=n_datapoints_cbar)
+    fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap),
+                cax=ax, orientation='vertical', label='Number of datapoints')
     ax2 = fig.add_axes([0.96, 0.12, 0.03, 0.76])
     cbar = matplotlib.colorbar.ColorbarBase(
         ax2,
         cmap=cmap,
         norm=norm,
         spacing="proportional",
-        ticks=bounds,
-        boundaries=bounds,
         format="%1i",
         extend="max",
     )
@@ -116,21 +109,16 @@ def plot_som_histogram(
         cmap=cmap,
         norm=norm,
     )
-
-    for label in cbar.ax.xaxis.get_ticklabels()[::2]:
-        label.set_visible(False)
-
     ax.set_xlabel("SOM columns", fontsize=fontsize)
     ax.set_ylabel("SOM rows", fontsize=fontsize)
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_fontsize(fontsize)
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(fontsize)
-
-    # to be compatible with plt.imshow:
-    ax.invert_yaxis()
-
-    plt.grid(b=False)
+        
+    ax.xaxis.label.set_color('tab:gray')
+    ax.tick_params(axis='x', colors='tab:gray')
+    ax.yaxis.tick_left()
 
     return ax
 
