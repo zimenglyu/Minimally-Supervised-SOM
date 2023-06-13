@@ -1,10 +1,10 @@
 # from os import umask
 from susi import SOMClustering
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 # import pandas as pd
-# from susi.SOMPlots import plot_umatrix
+from susi.SOMPlots import plot_umatrix, plot_som_histogram
 from MGA_dataset.MGA_dataset import MGA_Data
 import argparse
 # from typing import List, Tuple
@@ -34,6 +34,84 @@ def get_graph_index(i,j,row_size):
 def get_random_array(m,n):
     a = np.random.rand(m,n)
     return a
+
+def save_som_hist(bums, args, y_pred, max_count = 200):
+
+    matplotlib.rcParams.update({'font.size': 22})
+    ax = plot_som_histogram(bums, args.n_rows, args.n_columns, n_datapoints_cbar=max_count)
+    if y_pred is not None:
+        ax.scatter(y_pred[:,0]+0.2, y_pred[:, 1]+0.2, c='r', linewidths=5)
+    up = []
+    medium = []
+    down = []
+    leftup = []
+    leftdown = []
+    leftmedium = []
+    for i in range(len(y_pred)):
+        if [y_pred[i,0], y_pred[i, 1]] not in up:  
+            ax.text(y_pred[i,0] , y_pred[i, 1], str(i+2))
+            up.append([y_pred[i,0] , y_pred[i, 1]])
+        else:
+            if [y_pred[i,0] , y_pred[i, 1]] not in medium:
+                ax.text(y_pred[i,0] , y_pred[i, 1]-0.2, str(i+2))
+                medium.append([y_pred[i,0] , y_pred[i, 1]])
+            else:
+                if [y_pred[i,0] , y_pred[i, 1]] not in down:
+                    ax.text(y_pred[i,0] , y_pred[i, 1]+0.2, str(i+2))
+                    down.append([y_pred[i,0] , y_pred[i, 1]])
+                else:
+                    if [y_pred[i,0] , y_pred[i, 1]] not in leftup:
+                        ax.text(y_pred[i,0] -0.4, y_pred[i, 1], str(i+2))
+                        leftup.append([y_pred[i,0] , y_pred[i, 1]])
+                    else:
+                        if [y_pred[i,0] , y_pred[i, 1]] not in leftdown:
+                            ax.text(y_pred[i,0] -0.4, y_pred[i, 1]+0.2, str(i+2))
+                            leftdown.append([y_pred[i,0] , y_pred[i, 1]])
+                        else:
+                            ax.text(y_pred[i,0] -0.4, y_pred[i, 1]-0.2, str(i+2))
+                            leftmedium.append([y_pred[i,0] , y_pred[i, 1]])
+    plot_name = "{}_hist_{}_{}_e{}.png".format(args.dataset_name, args.n_rows, args.n_columns, args.n_epochs)
+    plot_title = "{} hist".format(args.dataset_name)
+    # ax.title(plot_title)
+    plt.savefig(plot_name, bbox_inches='tight')
+
+def save_umatrix(u_matrix, args, y_pred=None):
+    plot_umatrix(u_matrix, n_rows, n_columns)
+    if y_pred is not None:
+        plt.scatter(y_pred[:,1] *2, y_pred[:, 0]*2, c='r')
+    up = []
+    medium = []
+    down = []
+    leftup = []
+    leftdown = []
+    leftmedium = []
+    for i in range(len(y_pred)):
+        if [y_pred[i,1] *2, y_pred[i, 0]*2] not in up:  
+            plt.text(y_pred[i,1] *2, y_pred[i, 0]*2, str(i+2))
+            up.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+        else:
+            if [y_pred[i,1] *2, y_pred[i, 0]*2] not in medium:
+                plt.text(y_pred[i,1] *2, y_pred[i, 0]*2-0.5, str(i+2))
+                medium.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+            else:
+                if [y_pred[i,1] *2, y_pred[i, 0]*2] not in down:
+                    plt.text(y_pred[i,1] *2, y_pred[i, 0]*2+0.5, str(i+2))
+                    down.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+                else:
+                    if [y_pred[i,1] *2, y_pred[i, 0]*2] not in leftup:
+                        plt.text(y_pred[i,1] *2-1, y_pred[i, 0]*2, str(i+2))
+                        leftup.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+                    else:
+                        if [y_pred[i,1] *2, y_pred[i, 0]*2] not in leftdown:
+                            plt.text(y_pred[i,1] *2-1, y_pred[i, 0]*2+0.5, str(i+2))
+                            leftdown.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+                        else:
+                            plt.text(y_pred[i,1] *2-1, y_pred[i, 0]*2-0.5, str(i+2))
+                            leftmedium.append([y_pred[i,1] *2, y_pred[i, 0]*2])
+    plot_name = "{}_umatrix_{}_{}_e{}.png".format(dataset_name, n_rows, n_columns, n_epochs)
+    plot_title = "{} umatrix".format(dataset_name)
+    plt.title(plot_title)
+    plt.savefig(plot_name, bbox_inches='tight')
     
 def shortest_path_matrix(bum_list, u_matrix, n_rows, n_columns):
     num_points = len(bum_list)
@@ -189,23 +267,40 @@ if __name__ == "__main__":
         required=True,
         help="data set name, used for saving the results",
     )
+    parser.add_argument(
+        "--do_pca",
+        required=False,
+        default=False,
+        help="if do pca before SOM", 
+    )
+    parser.add_argument(
+        "--norm_method",
+        required=False,
+        default="minmax",
+        help="normalization method",
+    ) 
 
     args = parser.parse_args()
     n_columns = args.n_columns
     n_rows = args.n_rows
+    n_epochs = args.n_epochs
     num_neighbors = args.num_neighbors
     dataset_name = args.data_set
+    do_pca = args.do_pca
+    norm_method = args.norm_method
     if not args.do_prediction:
         do_prediction = False
         prediction_path = ""
     else:
         do_prediction = True
         prediction_path = args.do_prediction
+    print("do pca is {}".format(do_pca))
     print("do prediction {}".format(do_prediction))
+    print("normalization method is {}".format(norm_method))
     print("creating som with {} x {} size".format(n_columns, n_rows))
     print("num neighbors {}".format(num_neighbors))
 
-    CT_data = MGA_Data("minmax", prediction_path)
+    CT_data = MGA_Data(norm_method, prediction_path)
     CT_data.get_data(args.train_spectra, args.test_spectra, args.test_lab_result)
 
     # train SOM 
@@ -218,13 +313,22 @@ if __name__ == "__main__":
     # make prediction with SOM
     if (do_prediction):
         prediction_lab = som.transform(CT_data.test_data)
-        prediction_train = som.transform(CT_data.test_data_prediction)
 
+        prediction_train = som.transform(CT_data.test_data_prediction)
+        pd.DataFrame(prediction_train).to_csv("prediction_train.csv")
+        if (args.plot_umatrix):
+            save_umatrix(u_matrix, dataset_name, prediction_lab)
+        # print(prediction_train)
         # prediction = som.transform(CT_data.test_data_prediction)
     else:
         prediction = som.transform(CT_data.test_data)
+        if (args.plot_umatrix):
+            save_umatrix(u_matrix, dataset_name, prediction)
     # get shortest path
     num_properties = CT_data.num_CT
+    bmu_list = som.get_bmus(CT_data.train_data) # get the bmu list
+    # save_xsom_hist(bmu_list, args, None)
+    plot_som_histogram(bmu_list, n_rows, n_columns, n_datapoints_cbar=400)
 
     if (do_prediction):
         print("num properties is {}, use {} neighbors".format(num_properties, num_neighbors))
@@ -232,10 +336,10 @@ if __name__ == "__main__":
         final_prediction = []
         fenmu = 0.1
         count = 0
-        for dp in prediction_train:
+        for dp in prediction_train[:200,:]:
             if (count % 1 == 0):
                 print("count is {}".format(count))
-            for i in range(2):
+            for i in range(1):
                 prediction = np.vstack([dp, prediction_lab])
                 shortest_distance = shortest_path_matrix(prediction, u_matrix, n_rows, n_columns)
                 weighted_neighbor_pred = estimate_value(shortest_distance, num_neighbors, num_properties, fenmu)
