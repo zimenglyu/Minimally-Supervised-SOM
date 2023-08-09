@@ -56,7 +56,7 @@ def plot_som_histogram(
     bmu_list: List[Tuple[int, int]],
     n_rows: int,
     n_columns: int,
-    n_datapoints_cbar: int = 5,
+    n_datapoints_cbar: int = 500,
     fontsize: int = 10,
 ) -> plt.Axes:
     """Plot 2D Histogram of SOM.
@@ -119,7 +119,7 @@ def plot_som_histogram(
     ax.xaxis.label.set_color('tab:gray')
     ax.tick_params(axis='x', colors='tab:gray')
     ax.yaxis.tick_left()
-
+    plt.savefig("SOM_hist_" + str(n_columns) + "_" + str(n_rows) + ".png", bbox_inches='tight')
     return ax
 
 
@@ -152,8 +152,9 @@ def plot_umatrix(
         Plot axis
 
     """
+
     _, ax = plt.subplots(figsize=(6, 6))
-    img = ax.imshow(u_matrix.squeeze(), cmap=cmap)
+    img = ax.imshow(u_matrix.squeeze(), cmap=cmap, origin='lower')
     ax.set_xticks(np.arange(0, n_colums * 2 + 1, 20))
     ax.set_xticklabels(np.arange(0, n_colums + 1, 10))
     ax.set_yticks(np.arange(0, n_rows * 2 + 1, 20))
@@ -167,10 +168,14 @@ def plot_umatrix(
     ax.set_ylabel("SOM rows", fontsize=fontsize)
     ax.set_xlabel("SOM columns", fontsize=fontsize)
 
+    # for a in range(n_colums):
+    #     for b in range(n_rows):
+    #         plt.gca().add_patch(plt.Rectangle((2*b - 0.5, 2*a - 0.5), 1, 1, fill=False, edgecolor='blue', lw=2))
+
     # colorbar
     cbar = plt.colorbar(img, ax=ax, fraction=0.04, pad=0.04)
     cbar.ax.set_ylabel(
-        "Distance measure (a.u.)", rotation=90, fontsize=fontsize, labelpad=20
+        "Distance measure", rotation=90, fontsize=fontsize, labelpad=20
     )
     cbar.ax.tick_params(labelsize=fontsize)
 
