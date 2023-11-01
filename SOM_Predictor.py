@@ -34,6 +34,14 @@ class SOM_Predictor:
         # self.estimate_method = args.estimate_method
         self.norm_method = args.norm_method
         self.output_path = args.output_path
+        self.shuffle = args.shuffle_data
+        if (self.shuffle):
+            self.random_state = 1
+            print("shuffling the data")
+        else:
+            print("not shuffling the data")
+            self.random_state = None
+        print("random state is {}".format(self.random_state))
         
         print("normalization method is {}".format(self.norm_method))
         print("creating som with {} x {} size".format(self.n_rows, self.n_columns ))
@@ -46,7 +54,7 @@ class SOM_Predictor:
 
 
     def train(self):
-        self.som = SOMClustering(n_rows=self.n_rows, n_columns=self.n_columns, n_iter_unsupervised=self.n_epochs)
+        self.som = SOMClustering(n_rows=self.n_rows, n_columns=self.n_columns, n_iter_unsupervised=self.n_epochs, random_state=self.random_state)
         self.som.fit(self.mga_data.train_data)
         print("finished training SOM")
     
@@ -60,13 +68,25 @@ class SOM_Predictor:
         print("got mask")
         self.find_closest_points(mask_count, corr_index)
         print("got closest points")
-        self.calculate_closest_neighbor_values()
-        print("got look up table")
+        # self.calculate_closest_neighbor_values()
+        # print("got look up table")
     
-    def make_look_up_table(self):
-        self.calculate_closest_neighbor_values()
-        self.calculate_lookup_by_line_search()
-        self.calculate_lookup_by_poly_line_search()
+    def make_look_up_table(self, methods):
+        if ("weighted" in methods):
+            print("Calculating weighted neighbor look up table")
+            self.calculate_closest_neighbor_values()
+        if ("linear" in methods):
+            print("Calculating linear line search look up table")
+            self.calculate_lookup_by_line_search()
+        if ("poly" in methods):
+            print("Calculating poly line search look up table")
+            self.calculate_lookup_by_poly_line_search()
+        if ("average" in methods):
+            print("Calculating average neighbor look up table")
+            self.calculate_average_neighbor_values()
+        if ("random" in methods):
+            print("Calculating random neighbor look up table")
+            self.calculate_random_neighbor_values()
 
     def predict(self):
         pass
@@ -109,10 +129,10 @@ class SOM_Predictor:
                                 else:
                                     plt.text(self.lab_result_cluster[i, 0] *2-1, self.lab_result_cluster[i, 1]*2-0.5, str(i+2))
                                     leftmedium.append([self.lab_result_cluster[i, 0] *2, self.lab_result_cluster[i, 1]*2])
-        plot_name = "{}_U-matrix_{}_{}_e{}.png".format(self.dataset_name, self.n_rows, self.n_columns, self.n_epochs)
         plot_title = "U-matrix {}*{}".format( self.n_rows, self.n_columns)
         plt.title(plot_title)
-        plt.savefig(plot_name, bbox_inches='tight')
+        save_path = os.path.join(args.output_path, "U-matrix_{}_{}_{}_neighbor_{}_{}_{}.png".format(args.data_set, args.n_rows, args.n_epochs, args.num_neighbors, args.norm_method, args.fold))
+        plt.savefig(save_path, bbox_inches='tight')
         
 
     def inverse_number(self, x, fenmu):
@@ -221,6 +241,28 @@ class SOM_Predictor:
                         distance_sum_w += part_distance
                         numerator_w += part_distance * self.mga_data.lab_labels[self.closest_points[i][j][k], prop]
                     self.weighted_neighbor_table[prop,i,j] = numerator_w / distance_sum_w
+    
+    def calculate_average_neighbor_values(self):
+        self.average_neighbor_table = np.zeros((self.mga_data.num_labels, self.n_rows, self.n_columns))
+        sum_values = 0
+        for prop in range(self.mga_data.num_labels):
+            for i in range(self.n_rows):
+                for j in range(self.n_columns):
+                    for k in range(self.num_neighbors):
+                        sum_values += self.mga_data.lab_labels[self.closest_points[i][j][k], prop]
+                    self.average_neighbor_table[prop,i,j] = sum_values / self.num_neighbors
+    
+    def calculate_random_neighbor_values(self):
+        self.random_neighbor_table = np.zeros((self.mga_data.num_labels, self.n_rows, self.n_columns))
+        sum_values = 0
+        indices = np.arange(self.mga_data.num_vali_points)
+        for prop in range(self.mga_data.num_labels):
+            for i in range(self.n_rows):
+                for j in range(self.n_columns):
+                    np.random.shuffle(indices)
+                    for k in range(self.num_neighbors):
+                        sum_values += self.mga_data.lab_labels[indices[k], prop]
+                    self.random_neighbor_table[prop,i,j] = sum_values / self.num_neighbors
         
     def calculate_lookup_by_line_search(self):
         self.linear_table = np.zeros((self.mga_data.num_labels, self.n_rows, self.n_columns))
@@ -259,7 +301,10 @@ class SOM_Predictor:
                     predicted_value[pt, i] = self.linear_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
                 elif(method == "poly"):
                     predicted_value[pt, i] = self.poly_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
-        
+                elif(method == "average"):
+                    predicted_value[pt, i] = self.average_neighbor_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
+                elif(method == "random"):
+                    predicted_value[pt, i] = self.random_neighbor_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
         return predicted_value
     
 def save_som(predictor, filename):
@@ -346,12 +391,13 @@ if __name__ == "__main__":
         default="minmax",
         help="normalization method",
     ) 
-    # parser.add_argument(
-    #     "--estimate_method",
-    #     required=True,
-    #     default="weighted",
-    #     help="method to estimate values",
-    # )
+    parser.add_argument(
+        "--estimate_method",
+        required=True,
+        nargs="+",
+        action='append',
+        help="a string of methods to estimate values",
+    )
     parser.add_argument(
         "--output_path",
         required=True,
@@ -391,6 +437,13 @@ if __name__ == "__main__":
         type=int,
         help="number of spectra channels to remove from the end",
     )
+    parser.add_argument(
+        "--shuffle_data",
+        required=False,
+        default=False,
+        type=str2bool,
+        help="option to shuffle the data in SOM training",
+    )
 
     args = parser.parse_args()
     # ------- Train and save the SOM_Predictor -------
@@ -403,8 +456,10 @@ if __name__ == "__main__":
         som_predictor.train()
         print("finished training som")
         som_predictor.prepare_for_prediction()
-        som_predictor.make_look_up_table()
-        som_name = os.path.join(args.output_path, "{}_{}_{}_{}_neighbor_{}_{}.pickle".format(args.data_set, args.n_columns, args.n_rows, args.n_epochs, args.num_neighbors, args.norm_method))
+        methods = [item for sublist in args.estimate_method for item in sublist]
+        print("Methods used for value estimations are {}".format(methods))
+        som_predictor.make_look_up_table(methods)
+        som_name = os.path.join(args.output_path, "{}_{}_{}_neighbor_{}_{}_{}.pickle".format(args.data_set, args.n_rows, args.n_epochs, args.num_neighbors,  args.norm_method, args.fold))
         save_som(som_predictor, som_name)
         print("finished saving som to {}".format(som_name))
     else:
@@ -423,7 +478,9 @@ if __name__ == "__main__":
 
     # ------- Make prediction -------
     predicted_cluster = som_predictor.som.transform(som_predictor.mga_data.testing_spectra)
-    for method in ["weighted", "linear", "poly"]:
+    # for method in ["weighted", "linear", "poly"]:
+    for method in methods:
+    # for method in ["average", "random", "weighted", "linear", "poly"]:
         prediction = som_predictor.look_up(predicted_cluster, method)
         filename = "{}_{}_{}_{}_neighbor_{}_{}_{}.csv".format(args.data_set, args.n_rows, args.n_epochs, method, args.num_neighbors,  args.norm_method, args.fold)
         filename = os.path.join(args.output_path, filename)

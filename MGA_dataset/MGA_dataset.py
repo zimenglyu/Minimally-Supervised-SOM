@@ -26,7 +26,8 @@ class MGA_Data:
         input_train_spectra = pd.read_csv(args.train_spectra)
         input_train_spectra = input_train_spectra.drop(columns=['DateTime'])
         input_train_spectra = self.drop_spectra_channels(input_train_spectra, args.remove_first_channels, args.remove_last_channels)
- 
+        # # Shuffling the DataFrame
+        # input_train_spectra = input_train_spectra.sample(frac=1).reset_index(drop=True)
         # get number of columns
         self.num_train_columns = len(input_train_spectra.loc[0])
 
