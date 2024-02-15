@@ -13,6 +13,7 @@ from UMGraph import UMGraph
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import pickle
+from collections import Counter
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -87,6 +88,9 @@ class SOM_Predictor:
         if ("random" in methods):
             print("Calculating random neighbor look up table")
             self.calculate_random_neighbor_values()
+        if ("vote" in methods):
+            print("Calculating majority vote neighbor look up table")
+            self.calculate_vote_neighbor_values()
 
     def predict(self):
         pass
@@ -290,6 +294,20 @@ class SOM_Predictor:
                     X_new_poly = poly.transform(x_new)
                     y_pred = model.predict(X_new_poly)
                     self.poly_table[prop, i,j] = y_pred
+    def calculate_vote_neighbor_values(self):
+        self.vote_table = np.zeros((self.mga_data.num_labels, self.n_rows, self.n_columns))
+        
+        for prop in range(self.mga_data.num_labels):
+            for i in range(self.n_rows):
+                for j in range(self.n_columns):
+                    classes = []
+                    for k in range(self.num_neighbors):
+                        classes.append(self.mga_data.lab_labels[self.closest_points[i][j][k], prop][0])
+                    counter = Counter(classes)
+                    # Find the most common element
+                    majority_vote = counter.most_common(1)[0][0]
+                    self.vote_table[prop,i,j] = majority_vote
+
 
     def look_up(self, prediction, method):
         predicted_value = np.zeros((self.mga_data.testing_spectra.shape[0] , self.mga_data.num_labels))
@@ -305,6 +323,8 @@ class SOM_Predictor:
                     predicted_value[pt, i] = self.average_neighbor_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
                 elif(method == "random"):
                     predicted_value[pt, i] = self.random_neighbor_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
+                elif(method == "vote"):
+                    predicted_value[pt, i] = self.vote_table[i, int(prediction[pt, 0]), int(prediction[pt, 1])]
         return predicted_value
     
 def save_som(predictor, filename):
@@ -449,6 +469,8 @@ if __name__ == "__main__":
     # ------- Train and save the SOM_Predictor -------
     print("--------------------------------------------")
     print("load som is {}".format(args.load_som))
+    methods = [item for sublist in args.estimate_method for item in sublist]
+    print("Methods used for value estimations are {}".format(methods))
     if (not args.load_som):
         print("No som path provided, training a new som")
         som_predictor = SOM_Predictor(args)
@@ -456,8 +478,7 @@ if __name__ == "__main__":
         som_predictor.train()
         print("finished training som")
         som_predictor.prepare_for_prediction()
-        methods = [item for sublist in args.estimate_method for item in sublist]
-        print("Methods used for value estimations are {}".format(methods))
+
         som_predictor.make_look_up_table(methods)
         som_name = os.path.join(args.output_path, "{}_{}_{}_neighbor_{}_{}_{}.pickle".format(args.data_set, args.n_rows, args.n_epochs, args.num_neighbors,  args.norm_method, args.fold))
         save_som(som_predictor, som_name)
@@ -477,6 +498,7 @@ if __name__ == "__main__":
             som_predictor.save_umatrix()
 
     # ------- Make prediction -------
+    som_predictor.mga_data.get_data(args)
     predicted_cluster = som_predictor.som.transform(som_predictor.mga_data.testing_spectra)
     # for method in ["weighted", "linear", "poly"]:
     for method in methods:

@@ -178,7 +178,7 @@ def plot_umatrix(
         "Distance measure", rotation=90, fontsize=fontsize, labelpad=20
     )
     cbar.ax.tick_params(labelsize=fontsize)
-
+    # ax.axis('off')
     return ax
 
 
