@@ -1,4 +1,5 @@
-# from os import umask
+import sys
+sys.path.append('../susi')
 from susi import SOMClustering
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -7,7 +8,6 @@ import os
 from susi.SOMPlots import plot_umatrix, plot_som_histogram
 from MGA_dataset.MGA_dataset import MGA_Data
 import argparse
-import matplotlib
 import sys
 from UMGraph import UMGraph
 from sklearn.linear_model import LinearRegression
