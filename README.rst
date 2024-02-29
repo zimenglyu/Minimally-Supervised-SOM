@@ -8,7 +8,25 @@ The code is implemented based on the `SUSI package <https://github.com/felixries
 
 Quick Start
 -------------
+To get start with minimally supervised learning SOM for regression:
 
+.. code-block:: bash
+
+    $ sh scripts/regression.sh    
+
+To get start with minimally supervised learning SOM for classification:
+
+.. code-block:: bash
+
+    $ sh scripts/classification.sh 
+
+To test the trained SOM:
+
+.. code-block:: bash
+
+    $ sh scripts/test.sh 
+
+The datasets used for this project is currently private and will be released later.
 
 Publications:
 ---------------
