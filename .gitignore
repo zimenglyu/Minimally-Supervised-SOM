@@ -142,3 +142,14 @@ pip-selfcheck.json
 node_modules/
 guide/package-lock.json
 guide/deploy.sh
+
+# results
+testing_result*/
+SOM_Flight*/
+test_flight/
+*.zip
+plot/
+distance_matrix_nx.csv
+
+# experiment bash scripts
+*.sh
